@@ -1,0 +1,105 @@
+% Script Name   : TX2-60LP
+% Description   : A simple script which calculates from hard-coded values
+%                 the transform matrix, Jacobian, and formula for the
+%                 determinant of the TX2-60L robot arm from Stäubli, as
+%                 well as create an interactive rigid body tree, but
+%                 with an additional prismatic joint
+% Author        : Yang Geng
+% Date Created  : 2023-04-20
+% Last Modified : 2023-04-21
+
+%% DH parameters validation
+% Define DH parameters
+%       a       alpha       d       theta
+dh = [  0       -pi/2       375     0;      % 1
+        400     0           20      0;      % 2
+        0       -pi/2       0       0;      % 3
+        0       -pi/2       450     0;      % 4
+        0       pi/2        0       0;      % 5
+        0       0           70      0;      % 6
+        0       0           0       0];     % 7
+
+% Create robot using DH parameters
+robot = rigidBodyTree;
+bodies = cell(7, 1);
+joints = cell(7, 1);
+for i = 1:6
+    bodies{i} = rigidBody(['bdy' num2str(i)]);
+    joints{i} = rigidBodyJoint(['jnt' num2str(i)], 'revolute');
+    setFixedTransform(joints{i}, dh(i,:), "dh");
+    bodies{i}.Joint = joints{i};
+    if i == 1
+        addBody(robot, bodies{i}, "base");
+    else
+        addBody(robot, bodies{i}, bodies{i-1}.Name);
+    end
+end
+bodies{7} = rigidBody(['bdy' num2str(7)]);
+joints{7} = rigidBodyJoint(['jnt' num2str(7)], 'prismatic');
+setFixedTransform(joints{7}, dh(7,:), "dh");
+bodies{7}.Joint = joints{7};
+addBody(robot, bodies{7}, bodies{6}.Name);
+
+showdetails(robot);
+gui = interactiveRigidBodyTree(robot, MarkerScaleFactor=200);
+
+
+
+%% Calculate transform matrices and angular Jacobian
+% declare syms; t stands for theta
+syms a2
+syms alpha1 alpha3 alpha4 alpha5
+syms d1 d2 d4 d6 d7
+syms t [1 6]
+
+% declare a symbolic version of the DH parameters with only non-zero values
+%           a   alpha   d   theta
+sym_dh = [  0   alpha1  d1  t1;     % 1
+            a2  0       d2  t2;     % 2
+            0   alpha3  0   t3;     % 3
+            0   alpha4  d4  t4;     % 4
+            0   alpha5  0   t5;     % 5
+            0   0       d6  t6;     % 6
+            0   0       d7  0];     % 7
+
+% symbolic function to calculate the transform matrix between neighbours
+syms getTransform(a, alpha, d, theta)
+getTransform(a, alpha, d, theta) = [    
+    cos(theta)  -sin(theta)*cos(alpha)  sin(theta)*sin(alpha)   a*cos(theta);
+    sin(theta)  cos(theta)*cos(alpha)   -cos(theta)*sin(alpha)  a*sin(theta);
+    0           sin(alpha)              cos(alpha)              d;
+    0           0                       0                       1];
+
+T07 = getTransform(sym_dh(1,1), sym_dh(1,2), sym_dh(1,3), sym_dh(1,4));
+Jw = sym(zeros(3, 7)); Jw(:,1) = T07(1:3, 3);
+for i = 2:7
+    T07 = T07 * getTransform(sym_dh(i,1), sym_dh(i,2), sym_dh(i,3), sym_dh(i,4));
+    Jw(:,i) = T07(1:3, 3);
+end
+T07 = simplify(T07);
+disp(T07);
+
+% subsitute in known variables to further simplify
+sub_T07 = simplify(subs(T07, ...
+    [a2     alpha1  alpha3  alpha4  alpha5  d1  d2  d4  d6], ...
+    [400    -pi/2   -pi/2   -pi/2   pi/2    375 20  450 70]));
+disp(sub_T07);
+
+
+
+%% Jacobian calculations
+X = T07*[0;0;0;1]; X = X(1:3);
+Jv = jacobian(X, [t1 t2 t3 t4 t5 t6 d7]);
+J = simplify([Jv;Jw]);
+disp(J);
+disp(rank(J));
+
+sub_X = sub_T07*[0;0;0;1]; sub_X = sub_X(1:3);
+sub_Jv = jacobian(sub_X, [t1 t2 t3 t4 t5 t6 d7]);
+sub_Jw = subs(Jw, ...
+    [a2     alpha1  alpha3  alpha4  alpha5  d1  d2  d4  d6], ...
+    [400    -pi/2   -pi/2   -pi/2   pi/2    375 20  450 70]);
+sub_J = simplify([sub_Jv;sub_Jw]);
+disp(sub_J);
+disp(rank(sub_J));
+
