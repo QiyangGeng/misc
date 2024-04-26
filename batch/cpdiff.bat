@@ -1,9 +1,9 @@
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :: Name:         cpdiff.bat
-:: Author:		   Qiyang Geng
-:: Created:		   2024/04/24
-:: Last edited:	 2024/04/25
-:: Usage: 		   <dir1> <dir2> [<output>] [<filter>] [flags]
+:: Author:	 Qiyang Geng
+:: Created:	 2024/04/24
+:: Last edited:	 2024/04/26
+:: Usage: 	 <dir1> <dir2> [<output>] [<filter>] [flags]
 :: Description:  copies files that are in dir2 but not dir1 into a folder
 ::			           /o	  - output
 :: 			           /s   - copies symmetrical difference
@@ -16,10 +16,10 @@
 ::		difference of the two files, while clearing the output
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :: overwrite    noOverwrite	   behavior
-:: true		      true		       no overwrite without prompt
-:: true		      false		       overwrite without prompt
-:: false		    true		       no overwrite without prompt
-:: false		    false		       prompt
+:: true		true		   no overwrite without prompt
+:: true		false		   overwrite without prompt
+:: false	true		   no overwrite without prompt
+:: false	false		   prompt
 
 :: if noOverwrite is true, overwrite is overwritten to be false
 
